@@ -30,6 +30,28 @@ echo -e "\n🔍 Testing basic parsing and execution..."
 ./build/demo examples/example_family.bl > /dev/null 2>&1
 test_result $? "Family example parsing and execution"
 
+# Test 2b: Test minimal output format
+echo -e "\n📝 Testing minimal output format..."
+OUTPUT=$(./build/demo examples/example_family.bl 2>&1)
+if echo "$OUTPUT" | grep -q "parent(alice, bob)" && ! echo "$OUTPUT" | grep -q "✅" && ! echo "$OUTPUT" | grep -q "═══"; then
+    echo "✅ PASS: Minimal output format working"
+    ((PASS_COUNT++))
+else
+    echo "❌ FAIL: Minimal output format not working"
+    ((FAIL_COUNT++))
+fi
+
+# Test 2c: Test verbose output format
+echo -e "\n🔍 Testing verbose output format..."
+VERBOSE_OUTPUT=$(./build/demo -v examples/example_family.bl 2>&1)
+if echo "$VERBOSE_OUTPUT" | grep -q "✅ Parse successful!" && echo "$VERBOSE_OUTPUT" | grep -q "Abstract Syntax Tree:" && echo "$VERBOSE_OUTPUT" | grep -q "parent(alice, bob)"; then
+    echo "✅ PASS: Verbose output format working"
+    ((PASS_COUNT++))
+else
+    echo "❌ FAIL: Verbose output format not working"
+    ((FAIL_COUNT++))
+fi
+
 # Test 3: WAT compilation
 echo -e "\n🔧 Testing WAT compilation..."
 ./build/wat_compiler examples/example_family.bl > /dev/null 2>&1

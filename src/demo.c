@@ -13,36 +13,75 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
+static void print_usage(const char *program_name) {
+    printf("Usage: %s [OPTIONS] <file.bl>\n", program_name);
+    printf("ByteLog interpreter and analyzer\n\n");
+    printf("Options:\n");
+    printf("  -v, --verbose    Show detailed parsing and execution information\n");
+    printf("  -h, --help       Show this help message\n\n");
+    printf("Examples:\n");
+    printf("  %s program.bl          # Run program, show results only\n", program_name);
+    printf("  %s -v program.bl       # Run with detailed output\n", program_name);
+}
 
 int main(int argc, char **argv) {
-    const char *filename = "example_family.bl";
+    const char *filename = NULL;
+    bool verbose = false;
     
-    if (argc > 1) {
-        filename = argv[1];
+    /* Parse command line arguments */
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
+            verbose = true;
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else if (argv[i][0] == '-') {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+        } else {
+            filename = argv[i];
+        }
     }
     
-    printf("ByteLog Compiler Demo\n");
-    printf("═══════════════════════════════════════\n\n");
-    printf("Parsing file: %s\n\n", filename);
+    if (!filename) {
+        fprintf(stderr, "Error: No input file specified\n");
+        print_usage(argv[0]);
+        return 1;
+    }
+    
+    if (verbose) {
+        printf("ByteLog Interpreter\n");
+        printf("═══════════════════════════════════════\n\n");
+        printf("Parsing file: %s\n\n", filename);
+    }
     
     /* Parse the ByteLog file */
     char error_buf[512];
     ASTNode *ast = parse_file(filename, error_buf, sizeof(error_buf));
     
     if (!ast) {
-        printf("❌ Parse failed: %s\n", error_buf);
+        if (verbose) {
+            printf("❌ Parse failed: %s\n", error_buf);
+        } else {
+            fprintf(stderr, "Parse error: %s\n", error_buf);
+        }
         return 1;
     }
     
-    printf("✅ Parse successful!\n\n");
-    
-    /* Display the Abstract Syntax Tree */
-    printf("Abstract Syntax Tree:\n");
-    printf("─────────────────────────────────────────\n");
-    ast_print_tree(ast);
-    
-    printf("\nAnalysis:\n");
-    printf("─────────────────────────────────────────\n");
+    if (verbose) {
+        printf("✅ Parse successful!\n\n");
+        
+        /* Display the Abstract Syntax Tree */
+        printf("Abstract Syntax Tree:\n");
+        printf("─────────────────────────────────────────\n");
+        ast_print_tree(ast);
+        
+        printf("\nAnalysis:\n");
+        printf("─────────────────────────────────────────\n");
+    }
     
     /* Count different types of statements */
     int rel_count = 0, fact_count = 0, rule_count = 0;
@@ -61,67 +100,71 @@ int main(int argc, char **argv) {
         stmt = stmt->next;
     }
     
-    printf("Relations declared: %d\n", rel_count);
-    printf("Facts asserted: %d\n", fact_count);
-    printf("Rules defined: %d\n", rule_count);
-    printf("Solve statements: %d\n", solve_count);
-    printf("Queries: %d\n", query_count);
-    
-    /* Show what the program does */
-    printf("\nProgram Logic:\n");
-    printf("─────────────────────────────────────────\n");
-    
-    stmt = ast->data.program.statements;
-    while (stmt) {
-        switch (stmt->type) {
-            case AST_REL_DECL:
-                printf("• Declares relation '%s'\n", stmt->data.rel_decl.name);
-                break;
-                
-            case AST_FACT:
-                printf("• Asserts fact: %s(%d, %d)\n", 
-                       stmt->data.fact.relation, 
-                       stmt->data.fact.a, 
-                       stmt->data.fact.b);
-                break;
-                
-            case AST_RULE:
-                printf("• Defines rule for '%s'\n", stmt->data.rule.target);
-                break;
-                
-            case AST_SOLVE:
-                printf("• Computes fixpoint (derives all facts)\n");
-                break;
-                
-            case AST_QUERY:
-                if (stmt->data.query.arg_a != -1 && stmt->data.query.arg_b != -1) {
-                    printf("• Queries: Is %s(%d, %d) true?\n",
-                           stmt->data.query.relation,
-                           stmt->data.query.arg_a, 
-                           stmt->data.query.arg_b);
-                } else if (stmt->data.query.arg_a != -1) {
-                    printf("• Queries: All Y where %s(%d, Y)\n",
-                           stmt->data.query.relation,
-                           stmt->data.query.arg_a);
-                } else if (stmt->data.query.arg_b != -1) {
-                    printf("• Queries: All X where %s(X, %d)\n",
-                           stmt->data.query.relation,
-                           stmt->data.query.arg_b);
-                } else {
-                    printf("• Queries: All facts in %s\n",
-                           stmt->data.query.relation);
-                }
-                break;
-                
-            default:
-                break;
-        }
-        stmt = stmt->next;
+    if (verbose) {
+        printf("Relations declared: %d\n", rel_count);
+        printf("Facts asserted: %d\n", fact_count);
+        printf("Rules defined: %d\n", rule_count);
+        printf("Solve statements: %d\n", solve_count);
+        printf("Queries: %d\n", query_count);
+        
+        /* Show what the program does */
+        printf("\nProgram Logic:\n");
+        printf("─────────────────────────────────────────\n");
     }
     
-    /* Execute the program */
-    printf("\nExecution:\n");
-    printf("─────────────────────────────────────────\n");
+    if (verbose) {
+        stmt = ast->data.program.statements;
+        while (stmt) {
+            switch (stmt->type) {
+                case AST_REL_DECL:
+                    printf("• Declares relation '%s'\n", stmt->data.rel_decl.name);
+                    break;
+                    
+                case AST_FACT:
+                    printf("• Asserts fact: %s(%d, %d)\n", 
+                           stmt->data.fact.relation, 
+                           stmt->data.fact.a, 
+                           stmt->data.fact.b);
+                    break;
+                    
+                case AST_RULE:
+                    printf("• Defines rule for '%s'\n", stmt->data.rule.target);
+                    break;
+                    
+                case AST_SOLVE:
+                    printf("• Computes fixpoint (derives all facts)\n");
+                    break;
+                    
+                case AST_QUERY:
+                    if (stmt->data.query.arg_a != -1 && stmt->data.query.arg_b != -1) {
+                        printf("• Queries: Is %s(%d, %d) true?\n",
+                               stmt->data.query.relation,
+                               stmt->data.query.arg_a, 
+                               stmt->data.query.arg_b);
+                    } else if (stmt->data.query.arg_a != -1) {
+                        printf("• Queries: All Y where %s(%d, Y)\n",
+                               stmt->data.query.relation,
+                               stmt->data.query.arg_a);
+                    } else if (stmt->data.query.arg_b != -1) {
+                        printf("• Queries: All X where %s(X, %d)\n",
+                               stmt->data.query.relation,
+                               stmt->data.query.arg_b);
+                    } else {
+                        printf("• Queries: All facts in %s\n",
+                               stmt->data.query.relation);
+                    }
+                    break;
+                    
+                default:
+                    break;
+            }
+            stmt = stmt->next;
+        }
+        
+        /* Execute the program */
+        printf("\nExecution:\n");
+        printf("─────────────────────────────────────────\n");
+    }
     
     ExecutionEngine *engine = malloc(sizeof(ExecutionEngine));
     if (!engine) {
@@ -134,45 +177,53 @@ int main(int argc, char **argv) {
     engine_set_debug(engine, false);  /* Set to true for detailed execution trace */
     
     if (!engine_execute_program(engine, ast)) {
-        printf("❌ Execution failed: %s\n", engine_get_error(engine));
+        if (verbose) {
+            printf("❌ Execution failed: %s\n", engine_get_error(engine));
+        } else {
+            fprintf(stderr, "Execution error: %s\n", engine_get_error(engine));
+        }
         engine_cleanup(engine);
         free(engine);
         ast_free_tree(ast);
         return 1;
     }
     
-    printf("✅ Execution successful!\n\n");
-    
-    /* Show the derived facts */
-    printf("Derived Facts:\n");
-    printf("─────────────────────────────────────────\n");
-    factdb_print(&engine->facts, &engine->atoms);
-    
-    /* Answer all queries in the program */
-    printf("\nQuery Results:\n");
-    printf("─────────────────────────────────────────\n");
+    if (verbose) {
+        printf("✅ Execution successful!\n\n");
+        
+        /* Show the derived facts */
+        printf("Derived Facts:\n");
+        printf("─────────────────────────────────────────\n");
+        factdb_print(&engine->facts, &engine->atoms);
+        
+        /* Answer all queries in the program */
+        printf("\nQuery Results:\n");
+        printf("─────────────────────────────────────────\n");
+    }
     
     stmt = ast->data.program.statements;
     int query_num = 1;
     while (stmt) {
         if (stmt->type == AST_QUERY) {
-            printf("Query %d: ", query_num++);
-            
-            /* Print the query */
-            if (stmt->data.query.atom_a && stmt->data.query.atom_b) {
-                printf("%s(%s, %s)\n", stmt->data.query.relation,
-                       stmt->data.query.arg_a == -1 ? "?" : stmt->data.query.atom_a,
-                       stmt->data.query.arg_b == -1 ? "?" : stmt->data.query.atom_b);
-            } else if (stmt->data.query.atom_a) {
-                printf("%s(%s, %s)\n", stmt->data.query.relation,
-                       stmt->data.query.atom_a,
-                       stmt->data.query.arg_b == -1 ? "?" : "?");
-            } else if (stmt->data.query.atom_b) {
-                printf("%s(%s, %s)\n", stmt->data.query.relation,
-                       stmt->data.query.arg_a == -1 ? "?" : "?",
-                       stmt->data.query.atom_b);
-            } else {
-                printf("%s(?, ?)\n", stmt->data.query.relation);
+            if (verbose) {
+                printf("Query %d: ", query_num++);
+                
+                /* Print the query */
+                if (stmt->data.query.atom_a && stmt->data.query.atom_b) {
+                    printf("%s(%s, %s)\n", stmt->data.query.relation,
+                           stmt->data.query.arg_a == -1 ? "?" : stmt->data.query.atom_a,
+                           stmt->data.query.arg_b == -1 ? "?" : stmt->data.query.atom_b);
+                } else if (stmt->data.query.atom_a) {
+                    printf("%s(%s, %s)\n", stmt->data.query.relation,
+                           stmt->data.query.atom_a,
+                           stmt->data.query.arg_b == -1 ? "?" : "?");
+                } else if (stmt->data.query.atom_b) {
+                    printf("%s(%s, %s)\n", stmt->data.query.relation,
+                           stmt->data.query.arg_a == -1 ? "?" : "?",
+                           stmt->data.query.atom_b);
+                } else {
+                    printf("%s(?, ?)\n", stmt->data.query.relation);
+                }
             }
             
             /* Execute the query */
@@ -180,15 +231,17 @@ int main(int argc, char **argv) {
             if (results) {
                 query_result_print(results, stmt->data.query.relation, &engine->atoms);
                 query_result_free(results);
-            } else {
+            } else if (verbose) {
                 printf("  No results found.\n");
             }
-            printf("\n");
+            if (verbose) printf("\n");
         }
         stmt = stmt->next;
     }
     
-    printf("🎯 ByteLog program executed successfully!\n");
+    if (verbose) {
+        printf("🎯 ByteLog program executed successfully!\n");
+    }
     
     /* Clean up */
     engine_cleanup(engine);
