@@ -8,7 +8,7 @@
 # Quick start:
 #   make           - Build all targets
 #   make test      - Run all unit tests  
-#   make demo      - Run demo program
+#   make demo      - Run ByteLog interpreter
 #   make clean     - Remove build artifacts
 #   make help      - Show all available targets
 #
@@ -50,14 +50,14 @@ CORE_SOURCES = lexer.c ast.c atoms.c parser.c engine.c wat_gen.c
 CORE_OBJECTS = $(addprefix $(BUILD_DIR)/, $(CORE_SOURCES:.c=.o))
 
 # Executable sources  
-DEMO_SOURCE = demo.c
+BYTELOGIC_SOURCE = demo.c
 WAT_COMPILER_SOURCE = wat_compiler.c
 
 # Test sources
 TEST_SOURCES = test_lexer.c test_parser.c test_ast.c test_atoms.c
 
 # Output executables
-DEMO = $(BUILD_DIR)/demo
+BYTELOGIC = $(BUILD_DIR)/bytelogic
 WAT_COMPILER = $(BUILD_DIR)/wat_compiler
 TEST_EXECUTABLES = $(addprefix $(BUILD_DIR)/, $(TEST_SOURCES:.c=))
 
@@ -66,12 +66,12 @@ TEST_EXECUTABLES = $(addprefix $(BUILD_DIR)/, $(TEST_SOURCES:.c=))
 # ───────────────────────────────────────────────────────────────────────── 
 
 .PHONY: all
-all: $(BUILD_DIR) $(CORE_OBJECTS) $(DEMO) $(WAT_COMPILER)
+all: $(BUILD_DIR) $(CORE_OBJECTS) $(BYTELOGIC) $(WAT_COMPILER)
 	@echo ""
 	@echo "✅ $(PROJECT_NAME) v$(VERSION) built successfully!"
 	@echo ""
 	@echo "Available executables:"
-	@echo "  $(DEMO)         - Interactive demo and analysis tool"
+	@echo "  $(BYTELOGIC)    - ByteLog interpreter and analyzer"
 	@echo "  $(WAT_COMPILER) - WebAssembly Text compiler"
 	@echo ""
 	@echo "Run 'make help' for all available commands."
@@ -116,8 +116,8 @@ $(BUILD_DIR)/wat_gen.o: $(SRC_DIR)/wat_gen.c $(INCLUDE_DIR)/wat_gen.h \
 # Executable Targets
 # ───────────────────────────────────────────────────────────────────────── 
 
-$(DEMO): $(SRC_DIR)/$(DEMO_SOURCE) $(CORE_OBJECTS) | $(BUILD_DIR)
-	@echo "🔧 Building demo program..."
+$(BYTELOGIC): $(SRC_DIR)/$(BYTELOGIC_SOURCE) $(CORE_OBJECTS) | $(BUILD_DIR)
+	@echo "🔧 Building ByteLog interpreter..."
 	@$(CC) $(CFLAGS) $(INCLUDES) $< $(CORE_OBJECTS) -o $@
 
 $(WAT_COMPILER): $(SRC_DIR)/$(WAT_COMPILER_SOURCE) $(CORE_OBJECTS) | $(BUILD_DIR)
@@ -179,9 +179,9 @@ debug: clean all
 	@echo "🐛 Debug build completed with symbols and debugging enabled."
 
 .PHONY: demo
-demo: $(DEMO)
-	@echo "🚀 Running ByteLog demo..."
-	@$(DEMO) $(EXAMPLE_DIR)/example_family.bl
+demo: $(BYTELOGIC)
+	@echo "🚀 Running ByteLog interpreter..."
+	@$(BYTELOGIC) $(EXAMPLE_DIR)/example_family.bl
 
 .PHONY: wat
 wat: $(WAT_COMPILER)
@@ -231,14 +231,14 @@ format:
 # ───────────────────────────────────────────────────────────────────────── 
 
 .PHONY: examples
-examples: $(DEMO) $(WAT_COMPILER)
+examples: $(BYTELOGIC) $(WAT_COMPILER)
 	@echo "🎯 Running all examples..."
 	@echo ""
 	@echo "═══ Family Relations Example ═══"
-	@$(DEMO) $(EXAMPLE_DIR)/example_family.bl
+	@$(BYTELOGIC) $(EXAMPLE_DIR)/example_family.bl
 	@echo ""
 	@echo "═══ Atom Usage Example ═══"
-	@$(DEMO) $(EXAMPLE_DIR)/example_atoms.bl
+	@$(BYTELOGIC) $(EXAMPLE_DIR)/example_atoms.bl
 	@echo ""
 	@echo "🔧 Compiling examples to WebAssembly..."
 	@$(WAT_COMPILER) $(EXAMPLE_DIR)/example_family.bl $(BUILD_DIR)/example_family.wat
@@ -272,7 +272,7 @@ install: all
 	@echo "🚀 Installing ByteLog Compiler..."
 	@PREFIX=${PREFIX:-/usr/local}; \
 	mkdir -p "$$PREFIX/bin"; \
-	cp $(DEMO) "$$PREFIX/bin/bytelog-demo"; \
+	cp $(BYTELOGIC) "$$PREFIX/bin/bytelogic"; \
 	cp $(WAT_COMPILER) "$$PREFIX/bin/bytelog-wat"; \
 	echo "✅ Installed to $$PREFIX/bin/"
 
@@ -303,7 +303,7 @@ help:
 	@echo ""
 	@echo "🚀 Primary Targets:"
 	@echo "  all        - Build all executables (default)"
-	@echo "  demo       - Build and run interactive demo"
+	@echo "  demo       - Build and run ByteLog interpreter"
 	@echo "  wat        - Build WebAssembly Text compiler"
 	@echo "  test       - Run all unit tests (96 tests)"
 	@echo "  examples   - Run all example programs"
@@ -338,7 +338,7 @@ help:
 	@echo "  $(BUILD_DIR)/       - Build artifacts and executables"
 	@echo ""
 	@echo "🎯 Quick Examples:"
-	@echo "  make && make demo                              # Build and run demo"
+	@echo "  make && make demo                              # Build and run interpreter"
 	@echo "  make wat && ./$(WAT_COMPILER) examples/family.bl   # Compile to WASM"
 	@echo "  make test                                      # Run all tests"
 	@echo "  make memcheck                                  # Memory leak detection"

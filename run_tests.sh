@@ -3,6 +3,9 @@
 # ByteLog Comprehensive Test Suite
 # Tests parsing, execution, WAT compilation, and WASM execution
 
+# Define the executable name
+BYTELOGIC="./build/bytelogic"
+
 echo "🧪 ByteLog Comprehensive Test Suite"
 echo "═══════════════════════════════════════════════"
 
@@ -27,12 +30,12 @@ test_result $? "Build compilation"
 
 # Test 2: Basic parsing and execution
 echo -e "\n🔍 Testing basic parsing and execution..."
-./build/demo examples/example_family.bl > /dev/null 2>&1
+$BYTELOGIC examples/example_family.bl > /dev/null 2>&1
 test_result $? "Family example parsing and execution"
 
 # Test 2b: Test minimal output format
 echo -e "\n📝 Testing minimal output format..."
-OUTPUT=$(./build/demo examples/example_family.bl 2>&1)
+OUTPUT=$($BYTELOGIC examples/example_family.bl 2>&1)
 if echo "$OUTPUT" | grep -q "parent(alice, bob)" && ! echo "$OUTPUT" | grep -q "✅" && ! echo "$OUTPUT" | grep -q "═══"; then
     echo "✅ PASS: Minimal output format working"
     ((PASS_COUNT++))
@@ -43,7 +46,7 @@ fi
 
 # Test 2c: Test verbose output format
 echo -e "\n🔍 Testing verbose output format..."
-VERBOSE_OUTPUT=$(./build/demo -v examples/example_family.bl 2>&1)
+VERBOSE_OUTPUT=$($BYTELOGIC -v examples/example_family.bl 2>&1)
 if echo "$VERBOSE_OUTPUT" | grep -q "✅ Parse successful!" && echo "$VERBOSE_OUTPUT" | grep -q "Abstract Syntax Tree:" && echo "$VERBOSE_OUTPUT" | grep -q "parent(alice, bob)"; then
     echo "✅ PASS: Verbose output format working"
     ((PASS_COUNT++))
@@ -77,7 +80,7 @@ fi
 
 # Test 6: Logic puzzle example
 echo -e "\n🧩 Testing logic puzzle..."
-./build/demo examples/logic_puzzle_simple.bl > /dev/null 2>&1
+$BYTELOGIC examples/logic_puzzle_simple.bl > /dev/null 2>&1
 test_result $? "Logic puzzle parsing and execution"
 
 # Test 7: WAT compilation of logic puzzle
@@ -87,7 +90,7 @@ test_result $? "WAT compilation of logic puzzle"
 
 # Test 8: Error handling - invalid input
 echo -e "\n🚫 Testing error handling..."
-echo "INVALID SYNTAX" | ./build/demo /dev/stdin > /dev/null 2>&1
+echo "INVALID SYNTAX" | $BYTELOGIC /dev/stdin > /dev/null 2>&1
 # Error handling should return 1 (failure) but not crash
 if [ $? -eq 1 ]; then
     echo "✅ PASS: Error handling for invalid syntax"
@@ -107,7 +110,7 @@ SOLVE
 $(for i in {1..50}; do echo "QUERY test $i ?"; done)
 EOF
 
-./build/demo /tmp/large_test.bl > /dev/null 2>&1
+$BYTELOGIC /tmp/large_test.bl > /dev/null 2>&1
 test_result $? "Large program execution (memory stress test)"
 
 # Test 10: Multiple relation types
@@ -129,7 +132,7 @@ QUERY likes alice ?
 QUERY friends alice ?
 EOF
 
-./build/demo /tmp/multi_rel_test.bl > /dev/null 2>&1
+$BYTELOGIC /tmp/multi_rel_test.bl > /dev/null 2>&1
 test_result $? "Multiple relation types"
 
 # Summary
