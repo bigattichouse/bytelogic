@@ -10,6 +10,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "engine.h"
+#include "wat_gen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,18 +18,126 @@
 
 static void print_usage(const char *program_name) {
     printf("Usage: %s [OPTIONS] <file.bl>\n", program_name);
-    printf("ByteLog interpreter and analyzer\n\n");
+    printf("ByteLog interpreter, analyzer, and compiler\n\n");
     printf("Options:\n");
-    printf("  -v, --verbose    Show detailed parsing and execution information\n");
-    printf("  -h, --help       Show this help message\n\n");
+    printf("  -v, --verbose         Show detailed parsing and execution information\n");
+    printf("  -c, --compile=FORMAT  Compile to target format (wat|wasm)\n");
+    printf("  -o, --output=FILE     Output file (default: input.{wat|wasm})\n");
+    printf("  -h, --help            Show this help message\n\n");
     printf("Examples:\n");
-    printf("  %s program.bl          # Run program, show results only\n", program_name);
-    printf("  %s -v program.bl       # Run with detailed output\n", program_name);
+    printf("  %s program.bl                 # Run program, show results\n", program_name);
+    printf("  %s -v program.bl              # Run with detailed output\n", program_name);
+    printf("  %s --compile=wat program.bl   # Compile to WebAssembly Text\n", program_name);
+    printf("  %s --compile=wasm program.bl  # Compile to WASM binary\n", program_name);
+    printf("  %s -c wat -o output.wat prog.bl # Custom output file\n", program_name);
 }
+
+static char* get_default_output_filename(const char *input_filename, const char *extension) {
+    if (!input_filename) return NULL;
+    
+    size_t input_len = strlen(input_filename);
+    size_t ext_len = strlen(extension);
+    char *output = malloc(input_len + ext_len + 2); // +2 for '.' and null terminator
+    if (!output) return NULL;
+    
+    strcpy(output, input_filename);
+    
+    /* Replace .bl extension or append new extension */
+    char *dot = strrchr(output, '.');
+    if (dot && strcmp(dot, ".bl") == 0) {
+        strcpy(dot, ".");
+        strcat(dot, extension);
+    } else {
+        strcat(output, ".");
+        strcat(output, extension);
+    }
+    
+    return output;
+}
+
+static int compile_to_wat(const char *input_file, const char *output_file, bool verbose) {
+    char error_buf[512];
+    bool success = generate_wat_file(input_file, output_file, error_buf, sizeof(error_buf));
+    
+    if (success) {
+        if (verbose) {
+            printf("✅ WAT compilation successful!\n");
+            printf("Generated: %s\n", output_file);
+        } else {
+            printf("Generated %s\n", output_file);
+        }
+        return 0;
+    } else {
+        if (verbose) {
+            printf("❌ WAT compilation failed: %s\n", error_buf);
+        } else {
+            fprintf(stderr, "Compilation error: %s\n", error_buf);
+        }
+        return 1;
+    }
+}
+
+static int compile_to_wasm(const char *input_file, const char *output_file, bool verbose) {
+    /* First compile to WAT */
+    char *wat_file = get_default_output_filename(input_file, "wat");
+    if (!wat_file) {
+        fprintf(stderr, "Out of memory\n");
+        return 1;
+    }
+    
+    /* Generate WAT file in temp location */
+    char error_buf[512];
+    bool success = generate_wat_file(input_file, wat_file, error_buf, sizeof(error_buf));
+    
+    if (!success) {
+        if (verbose) {
+            printf("❌ WAT generation failed: %s\n", error_buf);
+        } else {
+            fprintf(stderr, "WAT generation error: %s\n", error_buf);
+        }
+        free(wat_file);
+        return 1;
+    }
+    
+    /* Now compile WAT to WASM using wat2wasm */
+    char command[1024];
+    snprintf(command, sizeof(command), "wat2wasm \"%s\" -o \"%s\"", wat_file, output_file);
+    
+    int result = system(command);
+    
+    /* Clean up temporary WAT file */
+    remove(wat_file);
+    free(wat_file);
+    
+    if (result == 0) {
+        if (verbose) {
+            printf("✅ WASM compilation successful!\n");
+            printf("Generated: %s\n", output_file);
+        } else {
+            printf("Generated %s\n", output_file);
+        }
+        return 0;
+    } else {
+        if (verbose) {
+            printf("❌ WASM compilation failed (wat2wasm not available or failed)\n");
+        } else {
+            fprintf(stderr, "WASM compilation failed: wat2wasm not available or failed\n");
+        }
+        return 1;
+    }
+}
+
+typedef enum {
+    MODE_INTERPRET,
+    MODE_COMPILE_WAT,
+    MODE_COMPILE_WASM
+} ExecutionMode;
 
 int main(int argc, char **argv) {
     const char *filename = NULL;
+    const char *output_file = NULL;
     bool verbose = false;
+    ExecutionMode mode = MODE_INTERPRET;
     
     /* Parse command line arguments */
     for (int i = 1; i < argc; i++) {
@@ -37,6 +146,42 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             return 0;
+        } else if (strncmp(argv[i], "--compile=", 10) == 0) {
+            const char *format = argv[i] + 10;
+            if (strcmp(format, "wat") == 0) {
+                mode = MODE_COMPILE_WAT;
+            } else if (strcmp(format, "wasm") == 0) {
+                mode = MODE_COMPILE_WASM;
+            } else {
+                fprintf(stderr, "Unknown compile format: %s\n", format);
+                fprintf(stderr, "Supported formats: wat, wasm\n");
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-c") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Option -c requires a format argument\n");
+                return 1;
+            }
+            const char *format = argv[++i];
+            if (strcmp(format, "wat") == 0) {
+                mode = MODE_COMPILE_WAT;
+            } else if (strcmp(format, "wasm") == 0) {
+                mode = MODE_COMPILE_WASM;
+            } else {
+                fprintf(stderr, "Unknown compile format: %s\n", format);
+                fprintf(stderr, "Supported formats: wat, wasm\n");
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-o") == 0 || strncmp(argv[i], "--output=", 9) == 0) {
+            if (strncmp(argv[i], "--output=", 9) == 0) {
+                output_file = argv[i] + 9;
+            } else {
+                if (i + 1 >= argc) {
+                    fprintf(stderr, "Option -o requires a filename argument\n");
+                    return 1;
+                }
+                output_file = argv[++i];
+            }
         } else if (argv[i][0] == '-') {
             fprintf(stderr, "Unknown option: %s\n", argv[i]);
             print_usage(argv[0]);
@@ -52,6 +197,45 @@ int main(int argc, char **argv) {
         return 1;
     }
     
+    /* Handle compilation modes */
+    if (mode == MODE_COMPILE_WAT || mode == MODE_COMPILE_WASM) {
+        /* Determine output filename if not specified */
+        char *allocated_output = NULL;
+        if (!output_file) {
+            const char *ext = (mode == MODE_COMPILE_WAT) ? "wat" : "wasm";
+            allocated_output = get_default_output_filename(filename, ext);
+            output_file = allocated_output;
+            
+            if (!output_file) {
+                fprintf(stderr, "Error: Out of memory\n");
+                return 1;
+            }
+        }
+        
+        if (verbose) {
+            printf("ByteLog Compiler\n");
+            printf("═══════════════════════════════════════\n\n");
+            printf("Input:  %s\n", filename);
+            printf("Output: %s\n", output_file);
+            printf("Mode:   %s\n\n", (mode == MODE_COMPILE_WAT) ? "WebAssembly Text" : "WebAssembly Binary");
+        }
+        
+        /* Perform compilation */
+        int result;
+        if (mode == MODE_COMPILE_WAT) {
+            result = compile_to_wat(filename, output_file, verbose);
+        } else {
+            result = compile_to_wasm(filename, output_file, verbose);
+        }
+        
+        if (allocated_output) {
+            free(allocated_output);
+        }
+        
+        return result;
+    }
+    
+    /* Interpreter mode */
     if (verbose) {
         printf("ByteLog Interpreter\n");
         printf("═══════════════════════════════════════\n\n");
