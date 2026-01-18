@@ -1,0 +1,15 @@
+; Test basic CALC function
+
+REL test
+
+CALC simple_add
+INPUT $0
+  LET $1 = $0 + 5
+  RESULT $1
+END
+
+FACT test 10 15
+
+SOLVE
+
+QUERY test ? ?

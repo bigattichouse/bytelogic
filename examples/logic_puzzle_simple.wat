@@ -93,83 +93,79 @@
   )
 
 ;; Rule evaluation functions
-  (func $rule_grandparent_0
+  (func $rule_birthday_person_0
     ;; Rule evaluation stub
     ;; TODO: Implement actual rule logic
   )
 
-  (func $rule_sibling_1
-    ;; Rule evaluation stub
-    ;; TODO: Implement actual rule logic
-  )
-
-  (func $rule_ancestor_2
-    ;; Rule evaluation stub
-    ;; TODO: Implement actual rule logic
-  )
-
-  (func $rule_ancestor_3
+  (func $rule_age_person_1
     ;; Rule evaluation stub
     ;; TODO: Implement actual rule logic
   )
 
 ;; Query functions
   (func $query_0 (result i32)
-    ;; Query: parent(0, ?)
+    ;; Query: birthday(0, ?)
     i32.const 1
   )
 
   (func $query_1 (result i32)
-    ;; Query: grandparent(0, ?)
+    ;; Query: birthday(1, ?)
     i32.const 1
   )
 
   (func $query_2 (result i32)
-    ;; Query: sibling(1, ?)
+    ;; Query: age(2, ?)
     i32.const 1
   )
 
   (func $query_3 (result i32)
-    ;; Query: ancestor(0, ?)
+    ;; Query: age(0, ?)
     i32.const 1
   )
 
 ;; Main execution function
   (func $main
-    ;; Add fact: parent(0, 1)
-    i32.const 6
+    ;; Add fact: birthday(0, 4)
+    i32.const 8
     i32.const 0
-    i32.const 1
-    call $add_fact
-
-    ;; Add fact: parent(0, 2)
-    i32.const 6
-    i32.const 0
-    i32.const 2
-    call $add_fact
-
-    ;; Add fact: parent(1, 3)
-    i32.const 6
-    i32.const 1
-    i32.const 3
-    call $add_fact
-
-    ;; Add fact: parent(2, 4)
-    i32.const 6
-    i32.const 2
     i32.const 4
     call $add_fact
 
-    ;; Add fact: parent(3, 5)
-    i32.const 6
-    i32.const 3
-    i32.const 5
+    ;; Add fact: birthday(1, 9)
+    i32.const 8
+    i32.const 1
+    i32.const 9
     call $add_fact
 
-    ;; Add fact: parent(4, 6)
+    ;; Add fact: age(2, 7)
+    i32.const 3
+    i32.const 2
+    i32.const 7
+    call $add_fact
+
+    ;; Add fact: age(0, 8)
+    i32.const 3
+    i32.const 0
+    i32.const 8
+    call $add_fact
+
+    ;; Add fact: person(0, 0)
     i32.const 6
-    i32.const 4
+    i32.const 0
+    i32.const 0
+    call $add_fact
+
+    ;; Add fact: person(2, 2)
     i32.const 6
+    i32.const 2
+    i32.const 2
+    call $add_fact
+
+    ;; Add fact: person(1, 1)
+    i32.const 6
+    i32.const 1
+    i32.const 1
     call $add_fact
 
 ;; TODO: Evaluate rules here

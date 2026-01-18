@@ -619,20 +619,59 @@ ASTNode* parse_file(const char *filename, char *error_buf, size_t error_buf_size
     }
     
     /* Read entire file into memory */
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    
-    char *source = malloc(file_size + 1);
-    if (!source) {
-        fclose(file);
-        if (error_buf && error_buf_size > 0) {
-            snprintf(error_buf, error_buf_size, "Out of memory");
-        }
-        return NULL;
+    /* Handle stdin specially since ftell() doesn't work reliably on pipes */
+    long file_size = -1;
+    if (strcmp(filename, "/dev/stdin") != 0) {
+        fseek(file, 0, SEEK_END);
+        file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
     }
     
-    size_t bytes_read = fread(source, 1, file_size, file);
+    char *source = NULL;
+    size_t bytes_read = 0;
+    
+    if (file_size >= 0) {
+        /* Regular file - allocate exact size */
+        source = malloc(file_size + 1);
+        if (!source) {
+            fclose(file);
+            if (error_buf && error_buf_size > 0) {
+                snprintf(error_buf, error_buf_size, "Out of memory");
+            }
+            return NULL;
+        }
+        bytes_read = fread(source, 1, file_size, file);
+    } else {
+        /* stdin or pipe - read in chunks */
+        size_t capacity = 1024;
+        source = malloc(capacity);
+        if (!source) {
+            fclose(file);
+            if (error_buf && error_buf_size > 0) {
+                snprintf(error_buf, error_buf_size, "Out of memory");
+            }
+            return NULL;
+        }
+        
+        int ch;
+        while ((ch = fgetc(file)) != EOF) {
+            if (bytes_read >= capacity - 1) {
+                capacity *= 2;
+                char *new_source = realloc(source, capacity);
+                if (!new_source) {
+                    free(source);
+                    fclose(file);
+                    if (error_buf && error_buf_size > 0) {
+                        snprintf(error_buf, error_buf_size, "Out of memory");
+                    }
+                    return NULL;
+                }
+                source = new_source;
+            }
+            source[bytes_read++] = ch;
+        }
+    }
+    
     source[bytes_read] = '\0';
     fclose(file);
     
