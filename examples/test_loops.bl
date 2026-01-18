@@ -1,0 +1,72 @@
+; ByteLog 3.0 Loop Extension Test Cases
+; Testing FOR-RANGE, FOR-WHILE, string operations, and expressions
+
+REL numbers
+REL results
+
+; Basic facts for testing
+FACT numbers 1 10
+FACT numbers 2 20
+FACT numbers 3 30
+
+; Test 1: Simple FOR-RANGE loop
+CALC count_to_five
+  LET $total = 0
+  FOR $i IN RANGE(1, 6)
+    LET $total = $total + $i
+  END
+  RESULT $total
+END
+
+; Test 2: FOR-WHILE loop with condition
+CALC fibonacci_nth
+  INPUT $n
+  LET $a = 0
+  LET $b = 1
+  LET $i = 0
+  FOR WHILE $i < $n
+    LET $temp = $a + $b
+    LET $a = $b
+    LET $b = $temp
+    LET $i = $i + 1
+  END
+  RESULT $a
+END
+
+; Test 3: String operations
+CALC count_vowels
+  INPUT $text
+  LET $count = 0
+  FOR $i IN RANGE(0, LENGTH($text))
+    LET $char = CHAR_AT($text, $i)
+    IF $char == "a" THEN
+      LET $count = $count + 1
+    END
+  END
+  RESULT $count
+END
+
+; Test 4: Nested loops 
+CALC multiplication_table
+  FOR $i IN RANGE(1, 4)
+    FOR $j IN RANGE(1, 4)
+      LET $product = $i * $j
+      EMIT results $i $j $product
+    END
+  END
+END
+
+; Test 5: Expression evaluation
+CALC complex_math
+  INPUT $x
+  LET $y = ($x + 5) * 2
+  LET $z = $y - $x / 2
+  IF $z > 10 THEN
+    RESULT $z
+  ELSE
+    RESULT -$z
+  END
+END
+
+SOLVE
+QUERY results ? ?

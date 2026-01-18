@@ -1,0 +1,58 @@
+; String Processing Test Cases
+; Demonstrating character iteration and string analysis
+
+REL words
+REL analysis
+
+; Test data - word strings (will need string interning system)
+FACT words 1 "hello"
+FACT words 2 "world"  
+FACT words 3 "strawberry"
+
+; Count specific characters in a word
+CALC count_letter_r
+  INPUT $word_string
+  LET $count = 0
+  FOR $i IN RANGE(0, LENGTH($word_string))
+    LET $char = CHAR_AT($word_string, $i)
+    IF $char == "r" THEN
+      LET $count = $count + 1
+    END
+  END
+  RESULT $count
+END
+
+; Vowel counting example
+CALC count_vowels  
+  INPUT $word_string
+  LET $vowels = 0
+  FOR $pos IN RANGE(0, LENGTH($word_string))
+    LET $ch = CHAR_AT($word_string, $pos)
+    IF $ch == "a" THEN
+      LET $vowels = $vowels + 1
+    END
+    IF $ch == "e" THEN
+      LET $vowels = $vowels + 1
+    END
+    IF $ch == "i" THEN
+      LET $vowels = $vowels + 1
+    END
+    IF $ch == "o" THEN
+      LET $vowels = $vowels + 1
+    END
+    IF $ch == "u" THEN
+      LET $vowels = $vowels + 1
+    END
+  END
+  RESULT $vowels
+END
+
+; Rule that processes all words and counts their R's
+RULE word_analysis: 
+  SCAN words,
+  LET $r_count = CALC count_letter_r($1),
+  EMIT analysis $0 $r_count
+END
+
+SOLVE
+QUERY analysis ? ?

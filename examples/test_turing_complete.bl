@@ -1,0 +1,190 @@
+; ByteLog 4.0 - Turing Complete Language Test
+; Demonstrates recursion, advanced math, CALC calls in expressions, BREAK/CONTINUE
+
+REL numbers
+REL primes
+REL fibonacci_seq
+
+; Test data
+FACT numbers 1 5
+FACT numbers 2 10
+FACT numbers 3 15
+
+; ============================================================================
+; RECURSIVE FUNCTIONS - Core Turing Completeness
+; ============================================================================
+
+; Recursive factorial
+CALC factorial
+  INPUT $n
+  IF $n <= 1 THEN
+    RESULT 1
+  ELSE
+    LET $prev = CALC factorial($n - 1)
+    RESULT $n * $prev
+  END
+END
+
+; Recursive greatest common divisor (Euclidean algorithm)
+CALC gcd
+  INPUT $a $b
+  IF $b == 0 THEN
+    RESULT $a
+  ELSE
+    LET $remainder = $a MOD $b
+    RESULT CALC gcd($b, $remainder)
+  END
+END
+
+; ============================================================================
+; MATHEMATICAL FUNCTIONS 
+; ============================================================================
+
+CALC advanced_math
+  INPUT $x $y
+  LET $power = POW($x, 3)
+  LET $absolute = ABS($x - $y)
+  LET $minimum = MIN($x, $y)
+  LET $maximum = MAX($x, $y)
+  LET $sqrt_val = SQRT($x)
+  LET $mod_result = $x MOD $y
+  
+  ; Complex expression using CALC calls
+  LET $fact_5 = CALC factorial(5)
+  LET $gcd_result = CALC gcd($x, $y)
+  
+  RESULT $power + $absolute + $minimum + $maximum
+END
+
+; ============================================================================
+; LOOP CONTROL WITH BREAK/CONTINUE
+; ============================================================================
+
+; Prime number checker with early exit
+CALC is_prime
+  INPUT $n
+  IF $n < 2 THEN
+    RESULT 0
+  END
+  
+  FOR $i IN RANGE(2, $n)
+    LET $sqrt_n = SQRT($n)
+    IF $i > $sqrt_n THEN
+      BREAK  ; Optimization: only check up to sqrt(n)
+    END
+    
+    IF $n MOD $i == 0 THEN
+      RESULT 0  ; Found divisor, not prime
+    END
+  END
+  
+  RESULT 1  ; No divisors found, is prime
+END
+
+; Find first N primes
+CALC find_nth_prime
+  INPUT $target_count
+  LET $count = 0
+  LET $candidate = 2
+  
+  FOR WHILE $count < $target_count
+    IF CALC is_prime($candidate) == 1 THEN
+      LET $count = $count + 1
+      IF $count == $target_count THEN
+        RESULT $candidate
+      END
+    END
+    LET $candidate = $candidate + 1
+  END
+  
+  RESULT -1  ; Should never reach here
+END
+
+; ============================================================================
+; STRING PROCESSING (Mental Calculation Support)
+; ============================================================================
+
+; Count specific character in word - "Count R's in strawberry"
+CALC count_char
+  INPUT $word_string $target_char
+  LET $count = 0
+  
+  FOR $i IN RANGE(0, LENGTH($word_string))
+    LET $current_char = CHAR_AT($word_string, $i)
+    IF $current_char == $target_char THEN
+      LET $count = $count + 1
+    END
+  END
+  
+  RESULT $count
+END
+
+; ============================================================================
+; NESTED LOOPS WITH COMPLEX LOGIC
+; ============================================================================
+
+; Generate multiplication table and find patterns
+CALC multiplication_analysis
+  INPUT $size
+  LET $even_products = 0
+  
+  FOR $i IN RANGE(1, $size + 1)
+    FOR $j IN RANGE(1, $size + 1)
+      LET $product = $i * $j
+      
+      ; Skip odd products
+      IF $product MOD 2 != 0 THEN
+        CONTINUE
+      END
+      
+      LET $even_products = $even_products + 1
+      
+      ; Early exit if we found enough patterns
+      IF $even_products > 20 THEN
+        BREAK
+      END
+    END
+  END
+  
+  RESULT $even_products
+END
+
+; ============================================================================
+; RULES THAT USE CALC FUNCTIONS
+; ============================================================================
+
+; Generate prime numbers using logic + computation
+RULE prime_generation:
+  SCAN numbers,
+  LET $is_prime_result = CALC is_prime($1),
+  WHERE $is_prime_result == 1,
+  EMIT primes $0 $1
+END
+
+; Generate Fibonacci sequence  
+RULE fib_sequence:
+  SCAN numbers,
+  LET $fib_result = CALC fibonacci($1),
+  EMIT fibonacci_seq $0 $fib_result
+END
+
+; Recursive Fibonacci for rule
+CALC fibonacci
+  INPUT $n
+  IF $n <= 1 THEN
+    RESULT $n
+  ELSE
+    LET $fib_prev1 = CALC fibonacci($n - 1)
+    LET $fib_prev2 = CALC fibonacci($n - 2)
+    RESULT $fib_prev1 + $fib_prev2
+  END
+END
+
+; ============================================================================
+; EXECUTION AND QUERIES
+; ============================================================================
+
+SOLVE
+
+QUERY primes ? ?
+QUERY fibonacci_seq ? ?

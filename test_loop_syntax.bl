@@ -1,0 +1,10 @@
+; Test for basic loop syntax parsing
+
+REL test_rel
+
+CALC simple_loop
+  LET $0 = 5
+  FOR $i IN RANGE(0, 10)
+    LET $1 = $0 + $i
+  END
+END

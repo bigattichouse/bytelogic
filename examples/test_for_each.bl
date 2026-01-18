@@ -1,0 +1,44 @@
+; FOR-EACH Loop Test Cases  
+; Demonstrating iteration over query results
+
+REL parent
+REL child  
+REL grandparent
+REL processed
+
+; Family data
+FACT parent alice bob
+FACT parent alice charlie
+FACT parent bob david
+FACT parent charlie eve
+
+; Test: FOR-EACH over query results
+CALC process_parents
+  FOR parent_pair IN (QUERY parent ? ?)
+    LET $bonus = 100
+    EMIT processed parent_pair.a parent_pair.b $bonus
+  END
+END
+
+; Test: Nested FOR-EACH loops  
+CALC find_grandparents
+  FOR parent1 IN (QUERY parent ? ?)
+    FOR parent2 IN (QUERY parent parent1.b ?)
+      EMIT grandparent parent1.a parent2.b
+    END
+  END
+END
+
+; Test: FOR-EACH with conditions
+CALC selective_processing
+  FOR relation IN (QUERY parent ? ?)
+    IF relation.a == alice THEN
+      LET $special = 999
+      EMIT processed relation.a relation.b $special  
+    END
+  END
+END
+
+SOLVE
+QUERY processed ? ?
+QUERY grandparent ? ?
