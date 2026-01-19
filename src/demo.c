@@ -22,13 +22,14 @@ static void print_usage(const char *program_name) {
     printf("Options:\n");
     printf("  -v, --verbose         Show detailed parsing and execution information\n");
     printf("  -c, --compile=FORMAT  Compile to target format (wat|wasm)\n");
-    printf("  -o, --output=FILE     Output file (default: input.{wat|wasm})\n");
+    printf("  -o, --output=FILE     Output file (default: input.{wat|wasm}, use '-' for stdout)\n");
     printf("  -h, --help            Show this help message\n\n");
     printf("Examples:\n");
     printf("  %s program.bl                 # Run program, show results\n", program_name);
     printf("  %s -v program.bl              # Run with detailed output\n", program_name);
     printf("  %s --compile=wat program.bl   # Compile to WebAssembly Text\n", program_name);
     printf("  %s --compile=wasm program.bl  # Compile to WASM binary\n", program_name);
+    printf("  %s -c wat -o - program.bl     # Output WAT to stdout\n", program_name);
     printf("  %s -c wat -o output.wat prog.bl # Custom output file\n", program_name);
 }
 
@@ -57,7 +58,56 @@ static char* get_default_output_filename(const char *input_filename, const char 
 
 static int compile_to_wat(const char *input_file, const char *output_file, bool verbose) {
     char error_buf[512];
-    bool success = generate_wat_file(input_file, output_file, error_buf, sizeof(error_buf));
+    bool success;
+    
+    /* Handle stdout output */
+    if (output_file && strcmp(output_file, "-") == 0) {
+        /* For stdout, we need to read the file first, then generate to stdout */
+        FILE *input = fopen(input_file, "r");
+        if (!input) {
+            snprintf(error_buf, 512, "Cannot open input file: %s", input_file);
+            if (verbose) {
+                printf("❌ WAT compilation failed: %s\n", error_buf);
+            } else {
+                fprintf(stderr, "Error: %s\n", error_buf);
+            }
+            return 1;
+        }
+        
+        /* Read entire file into memory */
+        fseek(input, 0, SEEK_END);
+        long file_size = ftell(input);
+        fseek(input, 0, SEEK_SET);
+        
+        char *source = malloc(file_size + 1);
+        if (!source) {
+            fclose(input);
+            snprintf(error_buf, 512, "Out of memory");
+            if (verbose) {
+                printf("❌ WAT compilation failed: %s\n", error_buf);
+            }
+            return 1;
+        }
+        
+        fread(source, 1, file_size, input);
+        source[file_size] = '\0';
+        fclose(input);
+        
+        success = generate_wat_string(source, stdout, error_buf, sizeof(error_buf));
+        free(source);
+        
+        if (!success) {
+            if (verbose) {
+                fprintf(stderr, "❌ WAT compilation failed: %s\n", error_buf);
+            } else {
+                fprintf(stderr, "Error: %s\n", error_buf);
+            }
+        }
+        return success ? 0 : 1;
+    }
+    
+    /* Handle file output */
+    success = generate_wat_file(input_file, output_file, error_buf, sizeof(error_buf));
     
     if (success) {
         if (verbose) {

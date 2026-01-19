@@ -3,7 +3,7 @@
 A portable, high-performance C implementation of the **ByteLog** language - a minimal logic programming notation designed for Large Language Models to generate deterministic logical inference programs that compile to **WebAssembly**.
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
-[![Tests](https://img.shields.io/badge/tests-96%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-12%20passed-brightgreen)](#)
 [![C99](https://img.shields.io/badge/C-99-blue)](#)
 [![WASM](https://img.shields.io/badge/WASM-supported-orange)](#)
 
@@ -13,12 +13,17 @@ A portable, high-performance C implementation of the **ByteLog** language - a mi
 # Build the compiler
 make
 
-# Run interactive demo
-make demo
+# Run ByteLog programs (interpreter mode)
+./build/bytelogic examples/example_family.bl
 
-# Compile ByteLog to WebAssembly
-make wat
-./build/wat_compiler examples/example_family.bl
+# Compile ByteLog to WebAssembly Text
+./build/bytelogic --compile=wat examples/example_family.bl
+
+# Compile ByteLog to WASM binary
+./build/bytelogic --compile=wasm examples/example_family.bl
+
+# Run with verbose output
+./build/bytelogic --verbose examples/example_family.bl
 
 # Run all unit tests
 make test
@@ -35,8 +40,8 @@ bytelog/
 │   ├── parser.c      # Recursive descent parser
 │   ├── engine.c      # Datalog execution engine
 │   ├── wat_gen.c     # WebAssembly Text generator
-│   ├── demo.c        # Interactive demo program
-│   └── wat_compiler.c # Command-line WAT compiler
+│   ├── demo.c        # Main ByteLog executable (interpreter & compiler)
+│   └── wat_compiler.c # Legacy standalone WAT compiler
 ├── includes/         # Header files (.h)
 ├── examples/         # Example ByteLog programs (.bl)
 ├── build/            # Build artifacts and executables
@@ -128,20 +133,27 @@ make docs       # Generate API documentation
 ### Interactive Analysis
 
 ```bash
-./build/demo examples/example_family.bl
-```
+# Basic execution with minimal output  
+./build/bytelogic examples/example_family.bl
 
-Shows parsing, execution, fact derivation, and query results.
+# Verbose execution showing parsing and derivation steps
+./build/bytelogic --verbose examples/example_family.bl
+```
 
 ### WebAssembly Compilation
 
 ```bash
-./build/wat_compiler examples/example_family.bl output.wat
-wat2wasm output.wat -o output.wasm
-wasmtime output.wasm
+# Compile to WebAssembly Text format
+./build/bytelogic --compile=wat examples/example_family.bl
+
+# Compile to WASM binary with custom output
+./build/bytelogic -c wasm -o custom.wasm examples/example_family.bl
+
+# Then run with WASM runtime
+wasmtime custom.wasm
 ```
 
-Generates WAT code compatible with web browsers and WASM runtimes.
+Generates WAT/WASM code compatible with web browsers and WASM runtimes.
 
 ### Programmatic Usage
 
